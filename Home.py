@@ -5,7 +5,7 @@ from firebase_admin import credentials, db
 import openai
 import json
 import random
-import os  # os 모듈 임포트 추가
+import os
 
 # 페이지 레이아웃 설정
 st.set_page_config(layout="wide")
@@ -104,8 +104,7 @@ if st.button("앱 생성"):
 """
 
     # 학생 앱 코드 생성
-    with open(os.path.join(app_dir, "app.py"), "w", encoding="utf-8") as f:
-        f.write(f'''
+    app_code = f'''
 import streamlit as st
 import openai
 import random
@@ -141,7 +140,7 @@ openai.api_key = selected_api_key
 st.title("학생용 AI 수업 도구")
 
 # 교사의 시스템 프롬프트 설정
-system_prompt = \"\"\"{system_prompt}\"\"\"
+system_prompt = """{system_prompt}"""
 
 # 학생 프롬프트 입력
 st.header("추가 프롬프트를 입력하세요:")
@@ -180,7 +179,10 @@ if st.button("생성"):
             st.image(response['data'][0]['url'])
     else:
         st.write("올바른 앱 타입을 선택하세요.")
-        ''')
+    '''
+
+    with open(os.path.join(app_dir, "app.py"), "w", encoding="utf-8") as f:
+        f.write(app_code)
 
     # Firebase에 데이터 저장
     try:
@@ -190,7 +192,8 @@ if st.button("생성"):
             'app_type': app_type
         })
         st.success(f"앱이 생성되었습니다! 앱 ID: {app_id}")
-        st.info(f"로컬 환경에서 앱이 실행 중입니다. 앱을 확인하려면 새로운 터미널에서 'streamlit run {app_dir}/app.py' 명령을 실행하세요.")
+        app_url = f"{st.secrets['base_url']}/apps/{app_id}/app.py"
+        st.info(f"[여기를 클릭하여 생성된 앱을 확인하세요]({app_url})")
     except Exception as e:
         st.error(f"앱 생성 중 오류가 발생했습니다: {e}")
 
