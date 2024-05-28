@@ -6,6 +6,7 @@ import openai
 import json
 import random
 import os
+import subprocess
 
 # 페이지 레이아웃 설정
 st.set_page_config(layout="wide")
@@ -35,7 +36,6 @@ openai.api_key = selected_api_key
 
 # Firebase 초기화
 if not firebase_admin._apps:
-    # secrets.toml에서 Firebase 인증 정보 읽기
     firebase_credentials_json = secrets["firebase_credentials_json"]
     cred_data = json.loads(firebase_credentials_json)
     cred = credentials.Certificate(cred_data)
@@ -45,20 +45,26 @@ if not firebase_admin._apps:
 st.title("교사용 AI 수업 도구 생성기")
 
 # 교사가 인공지능의 필요성을 입력
-st.header("어떤 인공지능을 만들고 싶으신가요?")
-teacher_request = st.text_area("요청")
+teacher_request = st.text_area("어떤 인공지능을 만들고 싶으신가요?")
 
 # 앱 타입 선택
-st.header("앱 타입을 선택하세요:")
-app_type = st.selectbox("앱 타입", ["텍스트 생성", "이미지 생성", "이미지 분석", "챗봇"])
+app_type = st.selectbox("앱 타입을 선택하세요:", ["텍스트 생성", "이미지 생성", "이미지 분석", "챗봇"])
+
+def create_and_push_app(app_id, app_code):
+    app_dir = f"apps/{app_id}"
+    os.makedirs(app_dir, exist_ok=True)
+    app_path = os.path.join(app_dir, "app.py")
+
+    with open(app_path, "w", encoding="utf-8") as f:
+        f.write(app_code)
+
+    subprocess.run(["git", "add", app_path], check=True)
+    subprocess.run(["git", "commit", "-m", f"Add new app {app_id}"], check=True)
+    subprocess.run(["git", "push"], check=True)
 
 # 앱 생성 및 배포
 if st.button("앱 생성"):
     app_id = str(uuid.uuid4())
-    app_dir = f"apps/{app_id}"
-    os.makedirs(app_dir, exist_ok=True)
-
-    # 시스템 프롬프트 생성
     system_prompt = f"""
 ### 기능 설명
 - assistant는 주어진 "요청"을 바탕으로 GPT가 효율적으로 작동하기 위한 "시스템 프롬프트"로 수정한다.
@@ -103,20 +109,16 @@ if st.button("앱 생성"):
 {teacher_request}
 """
 
-    # 학생 앱 코드 생성
     app_code = f'''
 import streamlit as st
 import openai
 import random
 import os
 
-# 페이지 레이아웃 설정
 st.set_page_config(layout="wide")
 
-# Load secrets from Streamlit secrets
 secrets = st.secrets
 
-# API 키 리스트
 api_keys = [
     secrets["api_key1"],
     secrets["api_key2"],
@@ -132,21 +134,16 @@ api_keys = [
     secrets["api_key12"]
 ]
 
-# 랜덤하게 API 키 선택
 selected_api_key = random.choice(api_keys)
 openai.api_key = selected_api_key
 
-# Streamlit 페이지 설정
 st.title("학생용 AI 수업 도구")
 
-# 교사의 시스템 프롬프트 설정
 system_prompt = """{system_prompt}"""
 
-# 학생 프롬프트 입력
 st.header("추가 프롬프트를 입력하세요:")
 student_prompt = st.text_area("추가 프롬프트")
 
-# 결과 출력
 st.header("결과:")
 if st.button("생성"):
     combined_prompt = system_prompt + " " + student_prompt
@@ -177,25 +174,11 @@ if st.button("생성"):
                 size="1024x1024"
             )
             st.image(response['data'][0]['url'])
-    else:
-        st.write("올바른 앱 타입을 선택하세요.")
     '''
 
-    with open(os.path.join(app_dir, "app.py"), "w", encoding="utf-8") as f:
-        f.write(app_code)
-
-    # Firebase에 데이터 저장
-    try:
-        ref = db.reference(f"apps/{app_id}")
-        ref.set({
-            'request': teacher_request,
-            'app_type': app_type
-        })
-        st.success(f"앱이 생성되었습니다! 앱 ID: {app_id}")
-        app_url = f"{st.secrets['base_url']}/apps/{app_id}/app.py"
-        st.info(f"[여기를 클릭하여 생성된 앱을 확인하세요]({app_url})")
-    except Exception as e:
-        st.error(f"앱 생성 중 오류가 발생했습니다: {e}")
+    create_and_push_app(app_id, app_code)
+    st.success(f"앱이 생성되었습니다! 앱 ID: {app_id}")
+    st.info(f"앱이 자동으로 배포되고 있습니다. 배포 완료 후 URL을 공유하겠습니다.")
 
 # 예제 프롬프트와 앱 타입 제공
 st.sidebar.header("예제 데이터")
