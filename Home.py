@@ -16,7 +16,7 @@ secrets = st.secrets
 
 # GitHub 토큰 및 레포지토리 정보
 GITHUB_TOKEN = secrets["MY_GITHUB_TOKEN"]
-GITHUB_REPO = "your-username/student-apps"
+GITHUB_REPO = "starrylifee/metaweb"
 
 # API 키 리스트
 api_keys = [
@@ -70,7 +70,13 @@ def create_and_push_app(app_id, app_code):
     }
 
     response = requests.put(url, headers=headers, json=data)
-    response.raise_for_status()
+
+    # 응답 상태 코드와 내용을 로그에 출력
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        st.error(f"Error: {e.response.status_code} - {e.response.json()}")
+        raise
 
 # 앱 생성 및 배포
 if st.button("앱 생성"):
