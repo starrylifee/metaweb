@@ -23,7 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install streamlit firebase-admin openai
 
-    - name: Deploy to Streamlit Cloud
+    - name: Run Streamlit app
       run: streamlit run apps/${{ github.sha }}/app.py
       env:
         FIREBASE_CREDENTIALS_JSON: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}

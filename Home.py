@@ -5,14 +5,18 @@ from firebase_admin import credentials, db
 import openai
 import json
 import random
-import os
-import subprocess
+import requests
+from base64 import b64encode
 
 # 페이지 레이아웃 설정
 st.set_page_config(layout="wide")
 
 # Load secrets from Streamlit secrets
 secrets = st.secrets
+
+# GitHub 토큰 및 레포지토리 정보
+GITHUB_TOKEN = secrets["MY_GITHUB_TOKEN"]
+GITHUB_REPO = "your-username/student-apps"
 
 # API 키 리스트
 api_keys = [
@@ -51,21 +55,22 @@ teacher_request = st.text_area("어떤 인공지능을 만들고 싶으신가요
 app_type = st.selectbox("앱 타입을 선택하세요:", ["텍스트 생성", "이미지 생성", "이미지 분석", "챗봇"])
 
 def create_and_push_app(app_id, app_code):
-    app_dir = f"apps/{app_id}"
-    os.makedirs(app_dir, exist_ok=True)
-    app_path = os.path.join(app_dir, "app.py")
+    app_path = f"apps/{app_id}/app.py"
 
-    with open(app_path, "w", encoding="utf-8") as f:
-        f.write(app_code)
+    # GitHub API를 사용하여 파일 추가 및 커밋
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{app_path}"
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {
+        "message": f"Add new app {app_id}",
+        "content": b64encode(app_code.encode("utf-8")).decode("utf-8"),
+        "branch": "main"
+    }
 
-    # Git 사용자 이름과 이메일 설정
-    subprocess.run(["git", "config", "--global", "user.name", "your-username"], check=True)
-    subprocess.run(["git", "config", "--global", "user.email", "your-email@example.com"], check=True)
-
-    # Git 명령어로 파일 추가, 커밋 및 푸시
-    subprocess.run(["git", "add", app_path], check=True)
-    subprocess.run(["git", "commit", "-m", f"Add new app {app_id}"], check=True)
-    subprocess.run(["git", "push"], check=True)
+    response = requests.put(url, headers=headers, json=data)
+    response.raise_for_status()
 
 # 앱 생성 및 배포
 if st.button("앱 생성"):
