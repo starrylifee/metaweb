@@ -17,8 +17,8 @@ secrets = st.secrets
 
 # GitHub 토큰 및 레포지토리 정보
 GITHUB_TOKEN = secrets["MY_GITHUB_TOKEN_2"]
-GITHUB_REPO = "starrylifee/metaweb"
-GITHUB_USER = "starrylifee"
+GITHUB_REPO = "metaweb"  # 저장소 이름을 정확히 입력
+GITHUB_USER = "starrylifee"  # GitHub 사용자 이름을 정확히 입력
 
 # API 키 리스트
 api_keys = [
