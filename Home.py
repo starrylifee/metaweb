@@ -58,6 +58,11 @@ def create_and_push_app(app_id, app_code):
     with open(app_path, "w", encoding="utf-8") as f:
         f.write(app_code)
 
+    # Git 사용자 이름과 이메일 설정
+    subprocess.run(["git", "config", "--global", "user.name", "your-username"], check=True)
+    subprocess.run(["git", "config", "--global", "user.email", "your-email@example.com"], check=True)
+
+    # Git 명령어로 파일 추가, 커밋 및 푸시
     subprocess.run(["git", "add", app_path], check=True)
     subprocess.run(["git", "commit", "-m", f"Add new app {app_id}"], check=True)
     subprocess.run(["git", "push"], check=True)
