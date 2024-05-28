@@ -17,8 +17,8 @@ secrets = st.secrets
 
 # GitHub 토큰 및 레포지토리 정보
 GITHUB_TOKEN = secrets["MY_GITHUB_TOKEN_2"]
-GITHUB_REPO = "starrylifee/metaweb"
-GITHUB_USER = "starrylifee"
+GITHUB_REPO = "your-username/student-apps"
+GITHUB_USER = "your-username"
 
 # API 키 리스트
 api_keys = [
@@ -72,7 +72,12 @@ def create_and_push_app(app_id, app_code):
     }
 
     response = requests.put(url, headers=headers, json=data)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        st.error(f"HTTP error occurred: {err}")
+        st.error(f"Response content: {response.content.decode('utf-8')}")
+        return None
 
     return response
 
@@ -204,17 +209,18 @@ if st.button("생성"):
             st.image(response['data'][0]['url'])
     '''
 
-    create_and_push_app(app_id, app_code)
-    st.success(f"앱이 생성되었습니다! 앱 ID: {app_id}")
-    
-    # GitHub Actions가 완료된 후 URL을 가져와서 팝업으로 표시
-    st.info("앱이 자동으로 배포되고 있습니다. 잠시만 기다려주세요...")
-    time.sleep(60)  # 배포가 완료될 때까지 대기 (적절한 시간으로 조정 가능)
-    workflow_url = get_github_workflow_url()
-    if workflow_url:
-        st.info(f"[여기를 클릭하여 생성된 앱을 확인하세요]({workflow_url})")
-    else:
-        st.error("앱 배포에 실패했습니다. GitHub Actions에서 상태를 확인하세요.")
+    response = create_and_push_app(app_id, app_code)
+    if response:
+        st.success(f"앱이 생성되었습니다! 앱 ID: {app_id}")
+        
+        # GitHub Actions가 완료된 후 URL을 가져와서 팝업으로 표시
+        st.info("앱이 자동으로 배포되고 있습니다. 잠시만 기다려주세요...")
+        time.sleep(60)  # 배포가 완료될 때까지 대기 (적절한 시간으로 조정 가능)
+        workflow_url = get_github_workflow_url()
+        if workflow_url:
+            st.info(f"[여기를 클릭하여 생성된 앱을 확인하세요]({workflow_url})")
+        else:
+            st.error("앱 배포에 실패했습니다. GitHub Actions에서 상태를 확인하세요.")
 
 # 예제 프롬프트와 앱 타입 제공
 st.sidebar.header("예제 데이터")
