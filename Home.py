@@ -5,6 +5,7 @@ from firebase_admin import credentials, db
 import openai
 import json
 import random
+import os  # os 모듈 임포트 추가
 
 # 페이지 레이아웃 설정
 st.set_page_config(layout="wide")
@@ -84,7 +85,7 @@ if st.button("앱 생성"):
 - user가 오답을 제시하면 힌트를 제공하고, 필요시 추가 설명을 제시함.
 - user가 특정 개념을 이해하기 어려워하면, 추가 예시나 설명을 제공하도록 함.
 - user가 대화를 종료하려 할 때, 학습한 내용을 요약하고 채점 결과와 통계를 제공하도록 함.
-- user가 잘못된 정보를 고집할 경우, 단호하게 바로잡고, 대화 목적과 관련 없는 대화는 거절하도록 지시함.
+- user가 잘못된 정보를 고집할 경우, 단호하게 바로잡고, 대화 목적과 관련 없는 대화를 거절하도록 지시함.
 
 ## user가 정답을 입력한 경우 대화 예시:
 - 프랑스 혁명은 언제 일어났을까요? <!-- 1789년 -->
