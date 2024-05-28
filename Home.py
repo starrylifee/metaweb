@@ -7,6 +7,7 @@ import json
 import random
 import requests
 from base64 import b64encode
+import time
 
 # 페이지 레이아웃 설정
 st.set_page_config(layout="wide")
@@ -15,8 +16,9 @@ st.set_page_config(layout="wide")
 secrets = st.secrets
 
 # GitHub 토큰 및 레포지토리 정보
-GITHUB_TOKEN = secrets["MY_GITHUB_TOKEN"]
+GITHUB_TOKEN = secrets["MY_GITHUB_TOKEN_2"]
 GITHUB_REPO = "starrylifee/metaweb"
+GITHUB_USER = "starrylifee"
 
 # API 키 리스트
 api_keys = [
@@ -58,7 +60,7 @@ def create_and_push_app(app_id, app_code):
     app_path = f"apps/{app_id}/app.py"
 
     # GitHub API를 사용하여 파일 추가 및 커밋
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{app_path}"
+    url = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/contents/{app_path}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -70,13 +72,23 @@ def create_and_push_app(app_id, app_code):
     }
 
     response = requests.put(url, headers=headers, json=data)
+    response.raise_for_status()
 
-    # 응답 상태 코드와 내용을 로그에 출력
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        st.error(f"Error: {e.response.status_code} - {e.response.json()}")
-        raise
+    return response
+
+def get_github_workflow_url():
+    url = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/actions/runs"
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    runs = response.json()
+    if runs["workflow_runs"]:
+        latest_run = runs["workflow_runs"][0]
+        return latest_run["html_url"]
+    return None
 
 # 앱 생성 및 배포
 if st.button("앱 생성"):
@@ -194,7 +206,15 @@ if st.button("생성"):
 
     create_and_push_app(app_id, app_code)
     st.success(f"앱이 생성되었습니다! 앱 ID: {app_id}")
-    st.info(f"앱이 자동으로 배포되고 있습니다. 배포 완료 후 URL을 공유하겠습니다.")
+    
+    # GitHub Actions가 완료된 후 URL을 가져와서 팝업으로 표시
+    st.info("앱이 자동으로 배포되고 있습니다. 잠시만 기다려주세요...")
+    time.sleep(60)  # 배포가 완료될 때까지 대기 (적절한 시간으로 조정 가능)
+    workflow_url = get_github_workflow_url()
+    if workflow_url:
+        st.info(f"[여기를 클릭하여 생성된 앱을 확인하세요]({workflow_url})")
+    else:
+        st.error("앱 배포에 실패했습니다. GitHub Actions에서 상태를 확인하세요.")
 
 # 예제 프롬프트와 앱 타입 제공
 st.sidebar.header("예제 데이터")

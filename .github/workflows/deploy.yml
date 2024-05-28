@@ -16,14 +16,30 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: '3.9'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install streamlit firebase-admin openai
+        pip install streamlit
 
-    - name: Run Streamlit app
-      run: streamlit run apps/${{ github.sha }}/app.py
+    - name: Deploy to Streamlit
       env:
-        FIREBASE_CREDENTIALS_JSON: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+        STREAMLIT_EMAIL: ${{ secrets.STREAMLIT_EMAIL }}
+        STREAMLIT_PASSWORD: ${{ secrets.STREAMLIT_PASSWORD }}
+      run: |
+        mkdir -p ~/.streamlit/
+        echo "[general]" > ~/.streamlit/credentials.toml
+        echo "email = \"${{ secrets.STREAMLIT_EMAIL }}\"" >> ~/.streamlit/credentials.toml
+        echo "[server]" > ~/.streamlit/config.toml
+        echo "headless = true" >> ~/.streamlit/config.toml
+        echo "port = $PORT" >> ~/.streamlit/config.toml
+        echo "enableCORS = false" >> ~/.streamlit/config.toml
+        streamlit run apps/${{ github.event.head_commit.id }}/app.py &
+
+    - name: Get deployed app URL
+      run: echo "Deployed URL: https://share.streamlit.io/${{ github.repository_owner }}/${{ github.repository }}/apps/${{ github.event.head_commit.id }}/app.py"
+      id: get_url
+
+    - name: Set output
+      run: echo "::set-output name=app_url::https://share.streamlit.io/${{ github.repository_owner }}/${{ github.repository }}/apps/${{ github.event.head_commit.id }}/app.py"
